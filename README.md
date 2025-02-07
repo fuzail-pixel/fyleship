@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Fyle Backend Challenge
 
 ## Who is this for?
@@ -71,3 +72,7 @@ For submitting the assignment, please follow these steps:
 Once you submit the assignment, you will hear back from us within 48 hours from us via email. 
 
 We look forward to seeing your solution!
+=======
+# fyleship
+Fyle Challenge
+>>>>>>> 75cb68c397a3d58aa45eda6bf54bd525dadedaf3
