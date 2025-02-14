@@ -13,8 +13,22 @@ def list_assignments(p):
     """
     # Fetch assignments for the authenticated teacher
     teachers_assignments = Assignment.get_assignments_by_teacher(teacher_id=p.teacher_id)
-    # Serialize the assignments to a dictionary format
-    return jsonify({"data": [assignment.to_dict() for assignment in teachers_assignments]}), 200
+
+    # Serialize the assignments manually
+    return jsonify({
+        "data": [
+            {
+                "id": assignment.id,
+                "content": assignment.content,
+                "grade": assignment.grade,
+                "state": assignment.state,
+                "student_id": assignment.student_id,
+                "teacher_id": assignment.teacher_id,
+                "created_at": assignment.created_at.isoformat(),
+                "updated_at": assignment.updated_at.isoformat()
+            } for assignment in teachers_assignments
+        ]
+    }), 200
 
 @teacher_assignments_resources.route('/assignments/grade', methods=['POST'], strict_slashes=False)
 @decorators.authenticate_principal
