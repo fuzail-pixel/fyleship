@@ -45,8 +45,10 @@ class Assignment(db.Model):
         if assignment_new.id is not None:
             assignment = Assignment.get_by_id(assignment_new.id)
             assertions.assert_found(assignment, 'No assignment with this id was found')
-            assertions.assert_valid(assignment.state == AssignmentStateEnum.DRAFT,
-                                    'only assignment in draft state can be edited')
+            assertions.assert_valid(
+                assignment.state == AssignmentStateEnum.DRAFT,
+                'only assignment in draft state can be edited'
+            )
             assignment.content = assignment_new.content
         else:
             assignment = assignment_new
@@ -58,19 +60,41 @@ class Assignment(db.Model):
     def submit(cls, _id, teacher_id, auth_principal: AuthPrincipal):
         assignment = Assignment.get_by_id(_id)
         assertions.assert_found(assignment, 'No assignment with this id was found')
-        assertions.assert_valid(assignment.student_id == auth_principal.student_id, 'This assignment belongs to some other student')
-        assertions.assert_valid(assignment.content is not None, 'assignment with empty content cannot be submitted')
+        assertions.assert_valid(
+            assignment.student_id == auth_principal.student_id,
+            'This assignment belongs to some other student'
+        )
+        assertions.assert_valid(
+            assignment.content is not None,
+            'assignment with empty content cannot be submitted'
+        )
+        assertions.assert_valid(
+            assignment.state == AssignmentStateEnum.DRAFT,
+            'only a draft assignment can be submitted'
+        )
         assignment.teacher_id = teacher_id
+        assignment.state = AssignmentStateEnum.SUBMITTED  # Update state to SUBMITTED
         db.session.flush()
         return assignment
 
     @classmethod
     def mark_grade(cls, _id, grade, auth_principal: AuthPrincipal):
-        assignment = cls.get_by_id(_id)
+        assignment = Assignment.get_by_id(_id)
         assertions.assert_found(assignment, 'No assignment with this id was found')
-        assertions.assert_valid(grade is not None, 'assignment with empty grade cannot be graded')
+        assertions.assert_valid(
+            grade is not None,
+            'assignment with empty grade cannot be graded'
+        )
+        # Allow grading only if the assignment is SUBMITTED or GRADED
+        assertions.assert_valid(
+            assignment.state in [AssignmentStateEnum.SUBMITTED, AssignmentStateEnum.GRADED],
+            'only submitted or graded assignments can be graded'
+        )
+        # Update the grade
         assignment.grade = grade
-        assignment.state = AssignmentStateEnum.GRADED
+        # Set the state to GRADED if it's not already GRADED
+        if assignment.state != AssignmentStateEnum.GRADED:
+            assignment.state = AssignmentStateEnum.GRADED
         db.session.flush()
         return assignment
 
@@ -80,26 +104,8 @@ class Assignment(db.Model):
 
     @classmethod
     def get_assignments_by_teacher(cls, teacher_id):
-        """
-        Fetches all assignments submitted to the specified teacher.
-        """
-        return cls.query.filter_by(teacher_id=teacher_id, state=AssignmentStateEnum.SUBMITTED).all()
+        return cls.filter(cls.teacher_id == teacher_id).all()
 
     @classmethod
     def get_assignments_by_principal(cls):
         return cls.filter(cls.state != AssignmentStateEnum.DRAFT).all()
-
-    def to_dict(self):
-        """
-        Serialize the assignment object into a dictionary.
-        """
-        return {
-            "id": self.id,
-            "student_id": self.student_id,
-            "teacher_id": self.teacher_id,
-            "content": self.content,
-            "grade": self.grade,
-            "state": self.state,
-            "created_at": self.created_at.isoformat(),
-            "updated_at": self.updated_at.isoformat()
-        }

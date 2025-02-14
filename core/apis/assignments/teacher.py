@@ -1,7 +1,6 @@
 from flask import Blueprint, jsonify, request
 from core.apis import decorators
 from core.models.assignments import Assignment
-import json
 
 # Define the teacher_assignments_resources blueprint
 teacher_assignments_resources = Blueprint('teacher_assignments_resources', __name__)
@@ -14,6 +13,7 @@ def list_assignments(p):
     """
     # Fetch assignments for the authenticated teacher
     teachers_assignments = Assignment.get_assignments_by_teacher(teacher_id=p.teacher_id)
+    # Serialize the assignments to a dictionary format
     return jsonify({"data": [assignment.to_dict() for assignment in teachers_assignments]}), 200
 
 @teacher_assignments_resources.route('/assignments/grade', methods=['POST'], strict_slashes=False)
