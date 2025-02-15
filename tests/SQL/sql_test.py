@@ -1,20 +1,15 @@
 import random
 from sqlalchemy import text
-
 from core import db
 from core.models.assignments import Assignment, AssignmentStateEnum, GradeEnum
 
-
 class TestSQL:
-
     def create_n_graded_assignments_for_teacher_and_student(self, number: int = 0, teacher_id: int = 1, student_id: int = 1) -> int:
         """
         Creates 'n' graded assignments for a specified teacher and returns the count of assignments with grade 'A'.
-
         Parameters:
         - number (int): The number of assignments to be created.
         - teacher_id (int): The ID of the teacher for whom the assignments are created.
-
         Returns:
         - int: Count of assignments with grade 'A'.
         """
@@ -23,12 +18,12 @@ class TestSQL:
             Assignment.teacher_id == teacher_id,
             Assignment.grade == GradeEnum.A
         ).count()
-
+        
         # Create 'n' graded assignments
         for _ in range(number):
             # Randomly select a grade from GradeEnum
             grade = random.choice(list(GradeEnum))
-
+            
             # Create a new Assignment instance
             assignment = Assignment(
                 teacher_id=teacher_id,
@@ -37,65 +32,85 @@ class TestSQL:
                 content='test content',
                 state=AssignmentStateEnum.GRADED
             )
-
+            
             # Add the assignment to the database session
             db.session.add(assignment)
-
+            print(f"DEBUG: Created Assignment - Teacher ID: {teacher_id}, Student ID: {student_id}, Grade: {grade}, State: {AssignmentStateEnum.GRADED}")
+            
             # Update the grade_a_counter if the grade is 'A'
             if grade == GradeEnum.A:
-                grade_a_counter = grade_a_counter + 1
-
+                grade_a_counter += 1
+        
         db.session.flush()
-
-        # Return the count of assignments with grade 'A'
         return grade_a_counter
 
     def test_count_assignments_in_each_grade(self):
         """Test to get count of assignments for each grade"""
-
         # Create 25 graded assignments for student 1
         self.create_n_graded_assignments_for_teacher_and_student(25, student_id=1)
         
-        # Create 20 graded assignments for student 1
+        # Create 20 graded assignments for student 2
         self.create_n_graded_assignments_for_teacher_and_student(20, student_id=2)
 
         # Define the expected results
         expected_result = []
         for grade in list(GradeEnum):
-            grade_count: int = Assignment.filter(
+            grade_count = Assignment.filter(
                 Assignment.grade == grade,
                 Assignment.state == AssignmentStateEnum.GRADED
             ).count()
             expected_result.append((grade.value, grade_count))
+        print(f"DEBUG: Expected Result: {expected_result}")
 
-        # Execute the SQL query and compare the result with the expected result
+        # Read and execute the SQL query
         with open('tests/SQL/count_assignments_in_each_grade.sql', encoding='utf8') as fo:
             sql = fo.read()
+        print(f"DEBUG: SQL Query: {sql}")  # Log the SQL query
 
-        # Execute the SQL query compare the result with the expected result
-        sql_result = db.session.execute(text(sql)).fetchall()
+        # Execute the SQL query and fetch all results
+        try:
+            with db.session.begin_nested():  # Use nested transactions to avoid conflicts
+                sql_result = db.session.execute(text(sql)).fetchall()
+            print(f"DEBUG: SQL Query Result: {sql_result}")
+        except Exception as e:
+            print(f"DEBUG: Error executing SQL query: {e}")
+            raise
+
+        # Compare the SQL result with the expected result
         for itr, result in enumerate(expected_result):
-            assert result[0] == sql_result[itr][0]
+            assert result[0] == sql_result[itr][0], f"Grade mismatch at index {itr}: expected {result[0]}, got {sql_result[itr][0]}"
+            assert result[1] == sql_result[itr][1], f"Count mismatch at index {itr}: expected {result[1]}, got {sql_result[itr][1]}"
 
     def test_get_grade_A_assignments_for_teacher_with_max_grading(self):
         """Test to get count of grade A assignments for teacher which has graded maximum assignments"""
-
         # Read the SQL query from a file
         with open('tests/SQL/count_grade_A_assignments_by_teacher_with_max_grading.sql', encoding='utf8') as fo:
             sql = fo.read()
 
         # Create and grade 5 assignments for the default teacher (teacher_id=1)
         grade_a_count_1 = self.create_n_graded_assignments_for_teacher_and_student(5)
-        
+
         # Execute the SQL query and check if the count matches the created assignments
-        sql_result = db.session.execute(text(sql)).fetchall()
+        try:
+            with db.session.begin_nested():  # Use nested transactions to avoid conflicts
+                sql_result = db.session.execute(text(sql)).fetchall()
+            print(f"DEBUG: SQL Query Result for Teacher 1: {sql_result}")
+        except Exception as e:
+            print(f"DEBUG: Error executing SQL query: {e}")
+            raise
         assert grade_a_count_1 == sql_result[0][0]
 
         # Create and grade 10 assignments for a different teacher (teacher_id=2)
-        grade_a_count_2 = self.create_n_graded_assignments_for_teacher_and_student(10, 2)
+        grade_a_count_2 = self.create_n_graded_assignments_for_teacher_and_student(10, teacher_id=2)
 
         # Execute the SQL query again and check if the count matches the newly created assignments
-        sql_result = db.session.execute(text(sql)).fetchall()
+        try:
+            with db.session.begin_nested():  # Use nested transactions to avoid conflicts
+                sql_result = db.session.execute(text(sql)).fetchall()
+            print(f"DEBUG: SQL Query Result for Teacher 2: {sql_result}")
+        except Exception as e:
+            print(f"DEBUG: Error executing SQL query: {e}")
+            raise
         assert grade_a_count_2 == sql_result[0][0]
 
     def teardown_method(self) -> None:
