@@ -86,6 +86,7 @@ class TestSQL:
         # Read the SQL query from a file
         with open('tests/SQL/count_grade_A_assignments_by_teacher_with_max_grading.sql', encoding='utf8') as fo:
             sql = fo.read()
+        print(f"DEBUG: SQL Query: {sql}")  # Log the SQL query
 
         # Create and grade 5 assignments for the default teacher (teacher_id=1)
         grade_a_count_1 = self.create_n_graded_assignments_for_teacher_and_student(5)
@@ -98,7 +99,9 @@ class TestSQL:
         except Exception as e:
             print(f"DEBUG: Error executing SQL query: {e}")
             raise
-        assert grade_a_count_1 == sql_result[0][0]
+        assert grade_a_count_1 == sql_result[0][0], (
+            f"Assertion failed for Teacher 1: expected {grade_a_count_1}, got {sql_result[0][0]}"
+        )
 
         # Create and grade 10 assignments for a different teacher (teacher_id=2)
         grade_a_count_2 = self.create_n_graded_assignments_for_teacher_and_student(10, teacher_id=2)
@@ -111,7 +114,9 @@ class TestSQL:
         except Exception as e:
             print(f"DEBUG: Error executing SQL query: {e}")
             raise
-        assert grade_a_count_2 == sql_result[0][0]
+        assert grade_a_count_2 == sql_result[0][0], (
+            f"Assertion failed for Teacher 2: expected {grade_a_count_2}, got {sql_result[0][0]}"
+        )
 
     def teardown_method(self) -> None:
         # Rollback the changes to the database after each test
