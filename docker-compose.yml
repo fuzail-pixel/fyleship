@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  flask-app:
+    build: .
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/app/data  # Persist SQLite database files
+    environment:
+      - GUNICORN_PORT=8000
+    depends_on:
+      - db
+
+  db:
+    image: alpine
+    volumes:
+      - ./data:/app/data  # Ensure SQLite data is persisted
+

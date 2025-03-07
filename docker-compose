@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  app:
+    build: .
+    container_name: flask-app
+    ports:
+      - "8000:8000"
+    volumes:
+      - .:/app
+      - sqlite_data:/app/data
+    environment:
+      - FLASK_ENV=production
+      - GUNICORN_PORT=8000
+    restart: always
+
+volumes:
+  sqlite_data:
